@@ -73,14 +73,19 @@ const P5SketchWithAudio = () => {
         }
 
         p.draw = () => {
+            p.paintStroke();
             if(p.audioLoaded && p.song.isPlaying()){
                 p.background(p.backgroundColour);
                 for (let i = 0; i < p.splatters.length; i++) {
                     const splatter = p.splatters[i], 
                         {x, y, size, divisors, colour} = splatter;
-
                     p.splatter(x, y, size, divisors, colour);
-                    
+                }
+
+                for (let i = 0; i < p.strokes.length; i++) {
+                    const stroke = p.strokes[i], 
+                        { origin, destination } = stroke;
+                    p.paintStroke(origin, destination);
                 }
             }
         }
@@ -114,8 +119,6 @@ const P5SketchWithAudio = () => {
             p.redraw();
         }
 
-        
-
         p.executeCueSet2 = (note) => {
             const { durationTicks } = note;
 
@@ -129,8 +132,16 @@ const P5SketchWithAudio = () => {
             }
         }
 
+        p.strokes = [];
+
         p.executeCueSet3 = (note) => {
-            p.paintStroke();
+            p.strokes.push(
+                {
+                    origin: p.createVector(p.random(0, p.width), p.random(0, p.height)),
+                    destination: p.createVector(p.random(0, p.width), p.random(0, p.height)),
+                }
+            );
+            p.redraw();
         }
 
         p.splatter = (x, y, size, divisors, colour) => {
@@ -151,31 +162,15 @@ const P5SketchWithAudio = () => {
                     x + size * Math.cos(i) / divisor, 
                     y + size * Math.sin(i) / divisor
                 );
-
-                if(Math.random() < 0.2) {
-                    
-                    // p.fill(
-                    //     colour[0],
-                    //     colour[1],
-                    //     colour[2],
-                    //     p.random(193)
-                    // );
-                    // p.ellipse(
-                    //     x + size * Math.cos(i) / (divisor / p.random(1, 1.1)), 
-                    //     y + size * Math.sin(i) / (divisor / p.random(1, 1.1)),
-                    //     size / 50,
-                    //     size / 50
-                    // );
-                }
             }
             p.endShape();
         }
 
-        p.paintStroke = () => {
-            const origin = p.createVector(p.random(0, p.width), p.random(0, p.height)),
-                destination = p.createVector(p.random(0, p.width), p.random(0, p.height)),
-                segments = 6, 
-                points = [{x: origin.x, y: origin.y}];
+        p.paintStroke = (origin = '', destination = '') => {
+            // const origin = p.createVector(p.random(0, p.width), p.random(0, p.height)),
+            //     destination = p.createVector(p.random(0, p.width), p.random(0, p.height)),
+            //     segments = 6, 
+            //     points = [{x: origin.x, y: origin.y}];
             // p.beginShape()
             // p.noFill()
 
@@ -204,31 +199,27 @@ const P5SketchWithAudio = () => {
             let friction = 0.5;
             let size = 25;
             let diff = size/8;
-            let x = 0,
-                y = 0, 
+            const test = [{"x":77,"y":242},{"x":77,"y":242},{"x":77,"y":243},{"x":80,"y":243},{"x":88,"y":243},{"x":102,"y":241},{"x":117,"y":238},{"x":139,"y":234},{"x":172,"y":226},{"x":210,"y":219},{"x":249,"y":213},{"x":287,"y":209},{"x":319,"y":204},{"x":342,"y":201},{"x":358,"y":196},{"x":366,"y":193},{"x":369,"y":190}] 
+            let x = test[0].x,
+                y = test[0].y,
                 ax = 0,
                 ay = 0, 
                 a = 0,
                 r = 0,
                 f = 0;
 
-            for (let i = 1; i < 100; i++) {
-                let scale = p.min(1, (i - 1) / 99),
-                    dist = window.p5.Vector.sub(destination, origin).mult(i/10),
-                    pos = window.p5.Vector.add(origin, dist);
+            
+            p.stroke(0, 0, 100);
+            for (let i = 3; i < test.length; i++) {
                 let oldR = r;
-                if(!f) {
-                    f = 1;
-                    x = pos.x;
-                    y = pos.y;
-                }
-                ax += ( pos.x - x ) * spring;
-                ay += ( pos.y - y ) * spring;
-                ax *= friction;
+                ax += ( test[i].x - x ) * spring;
+                ay += ( test[i].y - y ) * spring;
+                ax *= friction; 
                 ay *= friction;
                 a += p.sqrt( ax*ax + ay*ay ) - a;
                 a *= 0.6;
-                r = size - a;
+                r = size * 1 / i - a;
+
                 
                 for(let i = 0; i < distance; ++i ) {
                     let oldX = x;
@@ -239,7 +230,6 @@ const P5SketchWithAudio = () => {
                     if(oldR < 1) {
                         oldR = 1;
                     }
-                    p.stroke('white');
                     p.strokeWeight( oldR + diff );
                     p.line( x, y, oldX, oldY );
                     p.strokeWeight( oldR );
