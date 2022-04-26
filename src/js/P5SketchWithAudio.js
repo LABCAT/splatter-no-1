@@ -70,10 +70,17 @@ const P5SketchWithAudio = () => {
             p.colorMode(p.HSB);
             p.background(p.backgroundColour);
             p.noLoop();
+
+            for (let i = 0; i < 66; i++) {
+                p.strokes.push(
+                    {
+                        points: p.generatePoints()
+                    }
+                );
+            }
         }
 
         p.draw = () => {
-            p.paintStroke();
             if(p.audioLoaded && p.song.isPlaying()){
                 p.background(p.backgroundColour);
                 for (let i = 0; i < p.splatters.length; i++) {
@@ -82,10 +89,10 @@ const P5SketchWithAudio = () => {
                     p.splatter(x, y, size, divisors, colour);
                 }
 
-                for (let i = 0; i < p.strokes.length; i++) {
-                    const stroke = p.strokes[i], 
-                        { origin, destination } = stroke;
-                    p.paintStroke(origin, destination);
+                for (let i = 0; i < p.strokesToDraw.length; i++) {
+                    const stroke = p.strokesToDraw[i], 
+                        { points } = stroke;
+                    p.paintStroke(points);
                 }
             }
         }
@@ -103,7 +110,7 @@ const P5SketchWithAudio = () => {
             }
 
 
-            for (let i = 0; i < 2000; i++) {
+            for (let i = 0; i < 1080; i++) {
                 divisors.push(p.random(2,200));
             }
 
@@ -119,28 +126,34 @@ const P5SketchWithAudio = () => {
             p.redraw();
         }
 
-        p.executeCueSet2 = (note) => {
-            const { durationTicks } = note;
+        p.strokes = [];
+        p.strokesToDraw = [];
+        p.strokesIndex = 0;
 
-            if(durationTicks > 8000) {
+        p.executeCueSet2 = (note) => {
+            const { currentCue } = note;
+            if (currentCue % 11 === 1) {
+                p.strokesToDraw = [];
+            }
+            p.strokesToDraw.push(
+                p.strokes[p.strokesIndex]
+            );
+            p.strokesIndex++;
+            p.redraw();
+        }
+        
+        p.executeCueSet3 = (note) => {
+            const { currentCue, ticks } = note;
+            if(currentCue === 1){
+                p.backgroundColour = p.color(0, 0, 100);
+            }
+            if((ticks / p.PPQ) % 4 === 2) {
                 p.backgroundColour = p.color(
                     p.random(360), 
                     p.random(100), 
                     p.random(100)
                 );
-                p.redraw();
             }
-        }
-
-        p.strokes = [];
-
-        p.executeCueSet3 = (note) => {
-            p.strokes.push(
-                {
-                    origin: p.createVector(p.random(0, p.width), p.random(0, p.height)),
-                    destination: p.createVector(p.random(0, p.width), p.random(0, p.height)),
-                }
-            );
             p.redraw();
         }
 
@@ -155,7 +168,7 @@ const P5SketchWithAudio = () => {
                 1
             );
             p.beginShape();
-            for (let i = 0; i < 2000; i++) {
+            for (let i = 0; i < 1080; i++) {
                 const divisor = divisors[i];
                 
                 p.curveVertex(
@@ -166,54 +179,23 @@ const P5SketchWithAudio = () => {
             p.endShape();
         }
 
-        p.paintStroke = (origin = '', destination = '') => {
-            // const origin = p.createVector(p.random(0, p.width), p.random(0, p.height)),
-            //     destination = p.createVector(p.random(0, p.width), p.random(0, p.height)),
-            //     segments = 6, 
-            //     points = [{x: origin.x, y: origin.y}];
-            // p.beginShape()
-            // p.noFill()
-
-            // // Add the first point
-            // p.stroke('white')
-            // p.strokeWeight(5)
-            // p.curveVertex(origin.x, origin.y)
-            // p.curveVertex(origin.x, origin.y)  // duplicate start point
-
-            // // Draw line
-            // for (let i = 1; i < segments; i++){
-
-            //     // const dist = window.p5.Vector.sub(destination, origin).mult(i)
-            //     const point = p.createVector(p.random(origin.x, destination.x), p.random(origin.y, destination.y))
-
-            //     // Add point to curve
-            //     p.curveVertex(point.x, point.y);
-            //     points.push({x: point.x, y: point .y});
-
-            // }
-            // p.vertex(destination.x, destination.y)  // Duplicate ending point
-            // p.endShape()
-            // points.push({x: destination.x, y: destination.y});
+        p.paintStroke = (points) => {
             let distance = 10;
             let spring = 0.5;
             let friction = 0.5;
             let size = 25;
-            let diff = size/8;
-            const test = [{"x":77,"y":242},{"x":77,"y":242},{"x":77,"y":243},{"x":80,"y":243},{"x":88,"y":243},{"x":102,"y":241},{"x":117,"y":238},{"x":139,"y":234},{"x":172,"y":226},{"x":210,"y":219},{"x":249,"y":213},{"x":287,"y":209},{"x":319,"y":204},{"x":342,"y":201},{"x":358,"y":196},{"x":366,"y":193},{"x":369,"y":190}] 
-            let x = test[0].x,
-                y = test[0].y,
+            let diff = size / 8;
+            let x = points[0].x,
+                y = points[0].y,
                 ax = 0,
                 ay = 0, 
                 a = 0,
-                r = 0,
-                f = 0;
-
-            
+                r = 0;
             p.stroke(0, 0, 100);
-            for (let i = 3; i < test.length; i++) {
+            for (let i = 3; i < points.length; i++) {
                 let oldR = r;
-                ax += ( test[i].x - x ) * spring;
-                ay += ( test[i].y - y ) * spring;
+                ax += ( points[i].x - x ) * spring;
+                ay += ( points[i].y - y ) * spring;
                 ax *= friction; 
                 ay *= friction;
                 a += p.sqrt( ax*ax + ay*ay ) - a;
@@ -237,6 +219,56 @@ const P5SketchWithAudio = () => {
                     p.line( x-diff, y-diff, oldX-diff, oldY-diff );
                 }
             }
+        }
+
+        p.generatePoints = () => {
+            const points = [],
+                numOfPoints = p.random(20, 40),
+                xMultiplier = p.random(0, 20),
+                yMultiplier = p.random(0, 20),
+                direction = p.random(['left','right','up','down']);
+
+            let x = p.random(0, p.width),
+                y = p.random(0, p.height);
+            points.push(
+                {
+                    "x":x,
+                    "y":y
+                }
+            );
+
+            for (let i = 0; i < numOfPoints; i++) {
+                const noiseX = p.noise(i, 0) * xMultiplier;
+                const noiseY = p.noise(0, i) * yMultiplier;
+                switch (direction) {
+                    case 'left':
+                        x = x - noiseX;
+                        y = y - noiseY;
+                        break;
+                    case 'right':
+                        x = x + noiseX;
+                        y = y + noiseY;
+                        break;
+                    case 'up':
+                        x = x + noiseX;
+                        y = y - noiseY;
+                        break;
+                    case 'down':
+                        x = x - noiseX;
+                        y = y + noiseY;
+                        break;
+                    default:
+                        break;
+                }
+                
+                points.push(
+                    {
+                        "x":x,
+                        "y":y
+                    }
+                );
+            }
+            return points;
         }
 
         p.mousePressed = () => {
