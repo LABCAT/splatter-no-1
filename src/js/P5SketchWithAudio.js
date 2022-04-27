@@ -4,6 +4,7 @@ import "p5/lib/addons/p5.sound";
 import * as p5 from "p5";
 import { Midi } from '@tonejs/midi'
 import PlayIcon from './functions/PlayIcon.js';
+import PaintStroke from './classes/PaintStroke';
 
 import audio from "../audio/splatter-no-1.ogg";
 import midi from "../audio/splatter-no-1.mid";
@@ -90,9 +91,8 @@ const P5SketchWithAudio = () => {
                 }
 
                 for (let i = 0; i < p.strokesToDraw.length; i++) {
-                    const stroke = p.strokesToDraw[i], 
-                        { points } = stroke;
-                    p.paintStroke(points);
+                    const stroke = p.strokesToDraw[i];
+                    stroke.update();
                 }
             }
         }
@@ -118,7 +118,7 @@ const P5SketchWithAudio = () => {
                 {
                     x: x,
                     y: y,
-                    size: p.height / 8 * p.random(1.2, 1.5),
+                    size: p.random(p.height / 12, p.height / 4),
                     divisors: divisors,
                     colour: p.color(p.random(360), 100, 100),
                 }
@@ -131,12 +131,18 @@ const P5SketchWithAudio = () => {
         p.strokesIndex = 0;
 
         p.executeCueSet2 = (note) => {
-            const { currentCue } = note;
+            const { currentCue, duration, durationTicks } = note;
             if (currentCue % 11 === 1) {
                 p.strokesToDraw = [];
             }
             p.strokesToDraw.push(
-                p.strokes[p.strokesIndex]
+                new PaintStroke(
+                    p,
+                    p.strokes[p.strokesIndex].points,
+                    duration,
+                    p.color(p.random(360), 100, 100),
+                    p.color(p.random(360), 100, 100)
+                )
             );
             p.strokesIndex++;
             p.redraw();
@@ -177,48 +183,6 @@ const P5SketchWithAudio = () => {
                 );
             }
             p.endShape();
-        }
-
-        p.paintStroke = (points) => {
-            let distance = 10;
-            let spring = 0.5;
-            let friction = 0.5;
-            let size = 25;
-            let diff = size / 8;
-            let x = points[0].x,
-                y = points[0].y,
-                ax = 0,
-                ay = 0, 
-                a = 0,
-                r = 0;
-            p.stroke(0, 0, 100);
-            for (let i = 3; i < points.length; i++) {
-                let oldR = r;
-                ax += ( points[i].x - x ) * spring;
-                ay += ( points[i].y - y ) * spring;
-                ax *= friction; 
-                ay *= friction;
-                a += p.sqrt( ax*ax + ay*ay ) - a;
-                a *= 0.6;
-                r = size * 1 / i - a;
-
-                
-                for(let i = 0; i < distance; ++i ) {
-                    let oldX = x;
-                    let oldY = y;
-                    x += ax / distance;
-                    y += ay / distance;
-                    oldR += ( r - oldR ) / distance;
-                    if(oldR < 1) {
-                        oldR = 1;
-                    }
-                    p.strokeWeight( oldR + diff );
-                    p.line( x, y, oldX, oldY );
-                    p.strokeWeight( oldR );
-                    p.line( x+diff*2, y+diff*2, oldX+diff*2, oldY+diff*2 );
-                    p.line( x-diff, y-diff, oldX-diff, oldY-diff );
-                }
-            }
         }
 
         p.generatePoints = () => {
