@@ -16,6 +16,8 @@ const P5SketchWithAudio = () => {
 
         p.canvas = null;
 
+        p.splatterCanvas = null;
+
         p.canvasWidth = window.innerWidth;
 
         p.canvasHeight = window.innerHeight;
@@ -66,8 +68,12 @@ const P5SketchWithAudio = () => {
 
         p.backgroundColour = 0;
 
+        p.strokes = [];
+
         p.setup = () => {
             p.canvas = p.createCanvas(p.canvasWidth, p.canvasHeight);
+            p.splatterCanvas = p.createGraphics(p.canvasWidth, p.canvasHeight);
+            p.paintStrokeCanvas = p.createGraphics(p.canvasWidth, p.canvasHeight);
             p.colorMode(p.HSB);
             p.background(p.backgroundColour);
             p.noLoop();
@@ -84,20 +90,10 @@ const P5SketchWithAudio = () => {
         p.draw = () => {
             if(p.audioLoaded && p.song.isPlaying()){
                 p.background(p.backgroundColour);
-                for (let i = 0; i < p.splatters.length; i++) {
-                    const splatter = p.splatters[i], 
-                        {x, y, size, divisors, colour} = splatter;
-                    p.splatter(x, y, size, divisors, colour);
-                }
-
-                for (let i = 0; i < p.strokesToDraw.length; i++) {
-                    const stroke = p.strokesToDraw[i];
-                    stroke.update();
-                }
+                p.image(p.splatterCanvas, 0, 0);
+                p.image(p.paintStrokeCanvas, 0, 0);
             }
         }
-
-        p.splatters = [];
 
         p.executeCueSet1 = (note) => {
             const { currentCue } = note, 
@@ -106,51 +102,49 @@ const P5SketchWithAudio = () => {
                 divisors = [];
 
             if (currentCue % 23 === 1) {
-                p.splatters = [];
+                p.splatterCanvas.clear();
             }
 
 
             for (let i = 0; i < 1080; i++) {
                 divisors.push(p.random(2,200));
             }
-
-            p.splatters.push(
-                {
-                    x: x,
-                    y: y,
-                    size: p.random(p.height / 12, p.height / 4),
-                    divisors: divisors,
-                    colour: p.color(p.random(360), 100, 100),
-                }
-            );
+            p.splatter(x, y, p.random(p.height / 12, p.height / 4), divisors, p.color(p.random(360), 100, 100));
             p.redraw();
         }
 
-        p.strokes = [];
-        p.strokesToDraw = [];
         p.strokesIndex = 0;
 
         p.executeCueSet2 = (note) => {
-            const { currentCue, duration, durationTicks } = note;
-            if (currentCue % 11 === 1) {
-                p.strokesToDraw = [];
-            }
-            p.strokesToDraw.push(
-                new PaintStroke(
-                    p,
+            const { currentCue, duration } = note,
+                points = p.strokes[p.strokesIndex].points,
+                paintStroke = new PaintStroke(
+                    p.paintStrokeCanvas,
                     p.strokes[p.strokesIndex].points,
                     duration,
                     p.color(p.random(360), 100, 100),
                     p.color(p.random(360), 100, 100)
-                )
-            );
+                );
+
+            if (currentCue % 22 === 1) {
+                p.paintStrokeCanvas.clear();
+            }
+
+            for (let i = 0; i < points.length; i++) {
+                setTimeout(
+                    function () {
+                        paintStroke.draw(i);
+                        p.redraw();
+                    },
+                    (2 * i)
+                );
+            }
             p.strokesIndex++;
-            p.redraw();
         }
         
         p.executeCueSet3 = (note) => {
             const { currentCue, ticks } = note;
-            if(currentCue === 1){
+            if([1, 21, 51].includes(currentCue)){
                 p.backgroundColour = p.color(0, 0, 100);
             }
             if((ticks / p.PPQ) % 4 === 2) {
@@ -164,30 +158,29 @@ const P5SketchWithAudio = () => {
         }
 
         p.splatter = (x, y, size, divisors, colour) => {
-            // p.noFill();
-            p.strokeWeight(1);
-            p.stroke(colour);
-            p.fill(
+            p.splatterCanvas.strokeWeight(1);
+            p.splatterCanvas.stroke(colour);
+            p.splatterCanvas.fill(
                 colour._getHue(),
                 colour._getSaturation(),
                 colour._getBrightness(),
                 1
             );
-            p.beginShape();
+            p.splatterCanvas.beginShape();
             for (let i = 0; i < 1080; i++) {
                 const divisor = divisors[i];
                 
-                p.curveVertex(
+                p.splatterCanvas.curveVertex(
                     x + size * Math.cos(i) / divisor, 
                     y + size * Math.sin(i) / divisor
                 );
             }
-            p.endShape();
+            p.splatterCanvas.endShape();
         }
 
         p.generatePoints = () => {
             const points = [],
-                numOfPoints = p.random(20, 40),
+                numOfPoints = p.random(30, 40),
                 xMultiplier = p.random(0, 20),
                 yMultiplier = p.random(0, 20),
                 direction = p.random(['left','right','up','down']);

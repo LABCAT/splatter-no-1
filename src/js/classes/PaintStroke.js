@@ -1,31 +1,13 @@
 export default class PaintStroke {
-    constructor(p5, points, duration, fromColour, toColour) {
-        this.p = p5;
+    constructor(canvas, points, duration, fromColour, toColour) {
+        this.canvas = canvas;
         this.points = points; 
-        this.fromColour = this.p.color(fromColour);
-        this.toColour = this.p.color(toColour);
+        this.fromColour = this.canvas.color(fromColour);
+        this.toColour = this.canvas.color(toColour);
         this.index = 0;
         this.lifetime = parseInt(duration * 1000);
         this.hasInitiated = false;
         this.hasCompleted = false;
-    }
-
-    update() {
-        if(this.hasCompleted){
-            this.draw(this.points.length);
-        }
-        else if(!this.hasInitiated){
-            const self = this;
-            for (let i = 0; i < this.points.length; i++) {
-                setTimeout(
-                    function () {
-                        self.draw(i);
-                    },
-                    (3 * i)
-                );
-            }
-            this.hasInitiated = true;
-        }
     }
 
     draw(numOfLoops) {
@@ -46,14 +28,14 @@ export default class PaintStroke {
         }
 
         for (let i = 3; i < numOfLoops; i++) {
-            const stroke = this.p.lerpColor(this.fromColour, this.toColour, (1 / this.points.length * i) );
-            this.p.stroke(stroke);
+            const stroke = this.canvas.lerpColor(this.fromColour, this.toColour, (1 / this.points.length * i) );
+            this.canvas.stroke(stroke);
             let oldR = r;
                 ax += ( this.points[i].x - x ) * spring;
                 ay += ( this.points[i].y - y ) * spring;
                 ax *= friction; 
                 ay *= friction;
-                a += this.p.sqrt( ax*ax + ay*ay ) - a;
+                a += this.canvas.sqrt( ax*ax + ay*ay ) - a;
                 a *= 0.6;
                 r = size * 1 / i - a;
 
@@ -67,11 +49,11 @@ export default class PaintStroke {
                     if(oldR < 1) {
                         oldR = 1;
                     }
-                    this.p.strokeWeight( oldR + diff );
-                    this.p.line( x, y, oldX, oldY );
-                    this.p.strokeWeight( oldR );
-                    this.p.line( x+diff*2, y+diff*2, oldX+diff*2, oldY+diff*2 );
-                    this.p.line( x-diff, y-diff, oldX-diff, oldY-diff );
+                    this.canvas.strokeWeight( oldR + diff );
+                    this.canvas.line( x, y, oldX, oldY );
+                    this.canvas.strokeWeight( oldR );
+                    this.canvas.line( x+diff*2, y+diff*2, oldX+diff*2, oldY+diff*2 );
+                    this.canvas.line( x-diff, y-diff, oldX-diff, oldY-diff );
                 }
         }
     }
