@@ -126,7 +126,7 @@ const P5SketchWithAudio = () => {
         p.executeCueSet2 = (note) => {
             const { currentCue, duration } = note,
                 points = p.strokes[p.strokesIndex].points,
-                delayAmount = duration * 1000 / points.length,
+                delayAmount = duration / 2 * 1000 / points.length,
                 paintStroke = new PaintStroke(
                     p.paintStrokeCanvas,
                     p.strokes[p.strokesIndex].points,
