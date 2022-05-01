@@ -31,13 +31,14 @@ const P5SketchWithAudio = () => {
         p.loadMidi = () => {
             Midi.fromUrl(midi).then(
                 function(result) {
-                    console.log(result);
                     const noteSet1 = result.tracks[5].notes; // Thor 2 Copy - Comsmo Bass 2
                     const noteSet2 = result.tracks[9].notes; // Thor 2 Copy - Super Velo Brass
                     const noteSet3 = result.tracks[6].notes.filter(note => note.midi !== 43); // Kong 1 - Sparkle
+                    const noteSet4 = result.tracks[8].notes; // Thor 2 - Anime Melody
                     p.scheduleCueSet(noteSet1, 'executeCueSet1');
                     p.scheduleCueSet(noteSet2, 'executeCueSet2');
                     p.scheduleCueSet(noteSet3, 'executeCueSet3');
+                    p.scheduleCueSet(noteSet4, 'executeCueSet4');
                     p.audioLoaded = true;
                     document.getElementById("loader").classList.add("loading--complete");
                     document.getElementById("play-icon").classList.remove("fade-out");
@@ -100,17 +101,24 @@ const P5SketchWithAudio = () => {
                 x = p.random(0, p.width),
                 y = p.random(0, p.height),
                 divisors = [];
+            if(currentCue < 152) {
+                if (currentCue % 23 === 1) {
+                    p.splatterCanvas.clear();
+                }
 
-            if (currentCue % 23 === 1) {
-                p.splatterCanvas.clear();
+
+                for (let i = 0; i < 1080; i++) {
+                    divisors.push(p.random(2,200));
+                }
+                p.splatter(
+                    x, 
+                    y, 
+                    p.random(p.height / 4, p.height / 8), 
+                    divisors, 
+                    p.color(p.random(0, 360), 100, 100)
+                );
+                p.redraw();
             }
-
-
-            for (let i = 0; i < 1080; i++) {
-                divisors.push(p.random(2,200));
-            }
-            p.splatter(x, y, p.random(p.height / 12, p.height / 4), divisors, p.color(p.random(360), 100, 100));
-            p.redraw();
         }
 
         p.strokesIndex = 0;
@@ -118,6 +126,7 @@ const P5SketchWithAudio = () => {
         p.executeCueSet2 = (note) => {
             const { currentCue, duration } = note,
                 points = p.strokes[p.strokesIndex].points,
+                delayAmount = duration * 1000 / points.length,
                 paintStroke = new PaintStroke(
                     p.paintStrokeCanvas,
                     p.strokes[p.strokesIndex].points,
@@ -126,7 +135,7 @@ const P5SketchWithAudio = () => {
                     p.color(p.random(360), 100, 100)
                 );
 
-            if (currentCue % 22 === 1) {
+            if (currentCue % 11 === 1) {
                 p.paintStrokeCanvas.clear();
             }
 
@@ -136,7 +145,7 @@ const P5SketchWithAudio = () => {
                         paintStroke.draw(i);
                         p.redraw();
                     },
-                    (2 * i)
+                    (delayAmount * i)
                 );
             }
             p.strokesIndex++;
@@ -144,9 +153,6 @@ const P5SketchWithAudio = () => {
         
         p.executeCueSet3 = (note) => {
             const { currentCue, ticks } = note;
-            if([1, 21, 51].includes(currentCue)){
-                p.backgroundColour = p.color(0, 0, 100);
-            }
             if((ticks / p.PPQ) % 4 === 2) {
                 p.backgroundColour = p.color(
                     p.random(360), 
@@ -155,17 +161,49 @@ const P5SketchWithAudio = () => {
                 );
             }
             p.redraw();
+            if([1, 21, 51].includes(currentCue)){
+                p.backgroundColour = p.color(0, 0, 100);
+                p.clear();
+                p.splatterCanvas.clear();
+                p.paintStrokeCanvas.clear();
+            }
         }
 
-        p.splatter = (x, y, size, divisors, colour) => {
+        p.executeCueSet4 = (note) => {
+            const { currentCue } = note, 
+                x = p.random(0, p.width),
+                y = p.random(0, p.height),
+                divisors = [];
+
+            if (currentCue % 23 === 1) {
+                p.splatterCanvas.clear();
+            }
+
+            for (let i = 0; i < 1080; i++) {
+                divisors.push(p.random(2,200));
+            }
+
+            let size = p.random(p.height / 4, p.height / 6), 
+                reducer = size / 12, 
+                hue = p.random(0, 360);
+
+            for (let i = 0; i < 12; i++) {
+                p.splatter(x, y, size, divisors, p.color(hue, 100, 100), true);
+                size = size - reducer;
+                hue = hue + 15 >= 360 ? hue - 340 : hue + 15;
+            }
+            p.redraw();
+        }
+
+        p.splatter = (x, y, size, divisors, colour, fill = false) => {
             p.splatterCanvas.strokeWeight(1);
             p.splatterCanvas.stroke(colour);
-            p.splatterCanvas.fill(
-                colour._getHue(),
-                colour._getSaturation(),
-                colour._getBrightness(),
-                1
-            );
+            if(fill) {
+                p.splatterCanvas.fill(colour);
+            }
+            else {
+                p.splatterCanvas.noFill();
+            }
             p.splatterCanvas.beginShape();
             for (let i = 0; i < 1080; i++) {
                 const divisor = divisors[i];
